@@ -31,7 +31,7 @@ y_ = tf.placeholder("float", shape=[None, 10])
 # fc1
 W_fc1 = weight_variable([28 * 28, 300])
 prune_mask1 = tf.Variable(tf.ones_like(W_fc1), trainable=False, collections=[tf.GraphKeys.PRUNING_MASKS])
-fc1_pruned = tf.mul(W_fc1, prune_mask1)
+fc1_pruned = tf.multiply(W_fc1, prune_mask1)
 b_fc1 = bias_variable([300])
 h_fc1 = tf.nn.relu(tf.matmul(x, fc1_pruned) + b_fc1)
 # Dropout
@@ -40,7 +40,7 @@ h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob1)
 # fc2
 W_fc2 = weight_variable([300, 100])
 prune_mask2 = tf.Variable(tf.ones_like(W_fc2), trainable=False, collections=[tf.GraphKeys.PRUNING_MASKS])
-fc2_pruned = tf.mul(W_fc2, prune_mask2)
+fc2_pruned = tf.multiply(W_fc2, prune_mask2)
 b_fc2 = bias_variable([100])
 h_fc2 = tf.nn.relu(tf.matmul(h_fc1_drop, fc2_pruned) + b_fc2)
 # Dropout
@@ -49,7 +49,7 @@ h_fc2_drop = tf.nn.dropout(h_fc2, keep_prob2)
 # fc3
 W_fc3 = weight_variable([100, 10])
 prune_mask3 = tf.Variable(tf.ones_like(W_fc3), trainable=False, collections=[tf.GraphKeys.PRUNING_MASKS])
-fc3_pruned = tf.mul(W_fc3, prune_mask3)
+fc3_pruned = tf.multiply(W_fc3, prune_mask3)
 b_fc3 = bias_variable([10])
 logits = tf.matmul(h_fc2_drop, fc3_pruned) + b_fc3
 y = tf.nn.softmax(logits)
@@ -57,11 +57,11 @@ y = tf.nn.softmax(logits)
 # Define loss function, optimization technique, and accuracy metric
 # Add epsilon to prevent 0 log 0; See http://quabr.com/33712178/tensorflow-nan-bug
 # http://stackoverflow.com/questions/34240703/difference-between-tensorflow-tf-nn-softmax-and-tf-nn-softmax-cross-entropy-with
-cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits, y_)
+cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits  = logits , labels = y_)
 # "Overall, L2 regularization gives the best pruning results."
-l2_loss = tf.nn.l2_loss(tf.concat(0, [tf.reshape(W_fc1, [-1]), tf.reshape(W_fc2, [-1]), tf.reshape(W_fc3, [-1])]))
-l2_weight_decay = 0.0001  # 0.001 Suggested by Hinton et al. in 2012 ImageNet paper, but smaller works here
-loss = cross_entropy + l2_loss * l2_weight_decay
+# l2_loss = tf.nn.l2_loss(tf.concat(0, [tf.reshape(W_fc1, [-1]), tf.reshape(W_fc2, [-1]), tf.reshape(W_fc3, [-1])]))
+# l2_weight_decay = 0.0001  # 0.001 Suggested by Hinton et al. in 2012 ImageNet paper, but smaller works here
+loss = tf.reduce_mean(cross_entropy) #+ l2_loss * l2_weight_decay
 # "After pruning, the network is retrained with 1/10 of the original network's original learning rate."
 train_step = tf.train.AdamOptimizer(1e-3).minimize(loss)
 correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
@@ -75,9 +75,9 @@ t1 = tf.sqrt(tf.nn.l2_loss(W_fc1)) * threshold
 t2 = tf.sqrt(tf.nn.l2_loss(W_fc2)) * threshold
 t3 = tf.sqrt(tf.nn.l2_loss(W_fc3)) * threshold
 # Apply the previous prune masks each time
-indicator_matrix1 = tf.mul(tf.to_float(tf.greater_equal(W_fc1, tf.ones_like(W_fc1) * t1)), prune_mask1)
-indicator_matrix2 = tf.mul(tf.to_float(tf.greater_equal(W_fc2, tf.ones_like(W_fc2) * t2)), prune_mask2)
-indicator_matrix3 = tf.mul(tf.to_float(tf.greater_equal(W_fc3, tf.ones_like(W_fc3) * t3)), prune_mask3)
+indicator_matrix1 = tf.multiply(tf.to_float(tf.greater_equal(W_fc1, tf.ones_like(W_fc1) * t1)), prune_mask1)
+indicator_matrix2 = tf.multiply(tf.to_float(tf.greater_equal(W_fc2, tf.ones_like(W_fc2) * t2)), prune_mask2)
+indicator_matrix3 = tf.multiply(tf.to_float(tf.greater_equal(W_fc3, tf.ones_like(W_fc3) * t3)), prune_mask3)
 
 # Update the prune masks
 update_mask1 = tf.assign(prune_mask1, indicator_matrix1)
